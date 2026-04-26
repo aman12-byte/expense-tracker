@@ -187,12 +187,16 @@ public class TransactionRepository {
     }
 
     /**
-     * Monthly expense totals for last 6 months (bar chart data).
+     * Monthly cashflow (Income and Expense) for the dual-line chart (Last 6 months).
      */
-    public List<Map<String, Object>> getMonthlyExpenses(Long userId) {
-        String sql = "SELECT YEAR(date) AS yr, MONTH(date) AS mo, SUM(amount) AS total " +
-                     "FROM transactions WHERE user_id=? AND type='EXPENSE' " +
-                     "GROUP BY YEAR(date), MONTH(date) ORDER BY yr ASC, mo ASC LIMIT 6";
-        return jdbc.queryForList(sql, userId);
+    public List<Map<String, Object>> getMonthlyCashflow(Long userId) {
+        String sql = "SELECT YEAR(date) AS yr, MONTH(date) AS mo, " +
+                     "SUM(CASE WHEN type='INCOME' THEN amount ELSE 0 END) AS income, " +
+                     "SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) AS expense " +
+                     "FROM transactions WHERE user_id=? " +
+                     "GROUP BY YEAR(date), MONTH(date) ORDER BY yr DESC, mo DESC LIMIT 6";
+        List<Map<String, Object>> list = jdbc.queryForList(sql, userId);
+        java.util.Collections.reverse(list); // Ensure chronological order
+        return list;
     }
 }

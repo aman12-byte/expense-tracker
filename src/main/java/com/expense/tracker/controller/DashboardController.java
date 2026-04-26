@@ -56,7 +56,7 @@ public class DashboardController {
 
         List<Budget>              alerts          = budgetManager.getExceededBudgets(userId, m, y);
         List<Map<String, Object>> categoryData    = transactionService.getCategoryWiseExpenses(userId, m, y);
-        List<Map<String, Object>> monthlyData     = transactionService.getMonthlyExpenses(userId);
+        List<Map<String, Object>> monthlyData     = transactionService.getMonthlyCashflow(userId);
 
         // Build response
         Map<String, Object> dashboard = new HashMap<>();
@@ -69,7 +69,7 @@ public class DashboardController {
         dashboard.put("totalBudget",     totalBudget);
         dashboard.put("budgetAlerts",    alerts);
         dashboard.put("categoryExpenses", categoryData);
-        dashboard.put("monthlyExpenses", monthlyData);
+        dashboard.put("monthlyCashflow", monthlyData);
 
         return ResponseEntity.ok(dashboard);
     }

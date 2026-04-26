@@ -406,11 +406,19 @@ async function init() {
 async function loadCategories() {
   try {
     const res = await fetch('/api/categories');
-    categories = await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) categories = data;
+    }
   } catch(e) {}
+  
+  if (!Array.isArray(categories)) categories = [];
+  
   const filterCat = document.getElementById('filter-cat');
-  filterCat.innerHTML = '<option value="">All Categories</option>' +
-    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if (filterCat) {
+    filterCat.innerHTML = '<option value="">All Categories</option>' +
+      categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
   populateCategorySelect();
 }
 
@@ -458,8 +466,12 @@ async function loadTransactions() {
   let list = [];
   try {
     const res  = await fetch(url);
-    list = await res.json();
+    if (res.ok) {
+      list = await res.json();
+    }
   } catch(e) {}
+
+  if (!Array.isArray(list)) list = [];
 
   if (!list.length && !type && !catId && !from && !to) {
     list = getDemoTransactions();

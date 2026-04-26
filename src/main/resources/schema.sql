@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS categories (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Ensure older databases get the new columns without dropping tables
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS icon VARCHAR(10) DEFAULT '💰';
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#6366f1';
+
 -- Transactions table (stores both Income and Expense)
 -- type column = 'INCOME' or 'EXPENSE' (mapped to Income/Expense subclasses in Java)
 CREATE TABLE IF NOT EXISTS transactions (
@@ -66,3 +70,7 @@ MERGE INTO categories (id, name, icon, color, user_id) KEY(id) VALUES (7,  'Educ
 MERGE INTO categories (id, name, icon, color, user_id) KEY(id) VALUES (8,  'Salary',        '💼', '#22c55e', NULL);
 MERGE INTO categories (id, name, icon, color, user_id) KEY(id) VALUES (9,  'Freelance',     '💻', '#a855f7', NULL);
 MERGE INTO categories (id, name, icon, color, user_id) KEY(id) VALUES (10, 'Other',         '💰', '#6b7280', NULL);
+
+-- Fix H2 sequence: Since we manually inserted IDs 1-10, we must advance the auto-increment counter
+-- so that new custom categories don't fail with a Primary Key Violation.
+ALTER TABLE categories ALTER COLUMN id RESTART WITH 11;

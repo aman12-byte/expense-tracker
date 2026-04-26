@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 💰 Expense Tracker — College Mini Project
 
 **Course**: Object-Oriented Programming (Java)
@@ -116,3 +117,6 @@ expense-tracker/
 | **Inheritance** | `Expense extends Transaction`, `Income extends Transaction` |
 | **Polymorphism** | `TransactionService.addTransaction(Transaction)` handles both; `getType()` and `getSummary()` are overridden in subclasses |
 | **Abstraction** | `Transaction` is `abstract`; declares abstract methods `getType()` and `getSummary()` |
+=======
+# expense-tracker
+>>>>>>> 2b2733a23d0e21097c6b0d94c93c19d9041c1082

@@ -110,8 +110,8 @@ public class TransactionService {
     /**
      * Get monthly expense totals for last 6 months (for bar chart).
      */
-    public List<Map<String, Object>> getMonthlyExpenses(Long userId) {
-        return transactionRepository.getMonthlyExpenses(userId);
+    public List<Map<String, Object>> getMonthlyCashflow(Long userId) {
+        return transactionRepository.getMonthlyCashflow(userId);
     }
 
     // ===================== Factory Methods =====================

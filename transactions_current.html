@@ -103,31 +103,63 @@
         </div>
 
         <div class="toolbar">
-          <div class="filters">
-            <select id="filter-type" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+          <div class="filters" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">
+            <div style="position:relative;">
+              <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:16px;height:16px"></i>
+              <input type="text" id="filter-search" oninput="applyLocalFilters()" placeholder="Search transactions..." style="padding:10px 14px 10px 34px;border-radius:8px;border:1px solid var(--border);width:220px;background:var(--bg-card);color:var(--text-main);outline:none;">
+            </div>
+            <select id="filter-type" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);outline:none;">
               <option value="">All Types</option>
               <option value="INCOME">Income</option>
               <option value="EXPENSE">Expense</option>
             </select>
-            <select id="filter-cat" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+            <select id="filter-cat" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);outline:none;">
               <option value="">All Categories</option>
             </select>
-            <input type="date" id="filter-from" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
-            <input type="date" id="filter-to"   onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+            <input type="date" id="filter-from" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);outline:none;">
+            <input type="date" id="filter-to"   onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-main);outline:none;">
             <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear Filters</button>
+          </div>
+        </div>
+
+        <!-- Totals Summary -->
+        <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+          <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-header" style="margin-bottom:8px">
+              <label>Total Income</label>
+              <div class="stat-icon income" style="width:32px;height:32px"><i data-lucide="trending-up" style="width:16px;height:16px"></i></div>
+            </div>
+            <div class="stat-amount" id="sum-income" style="font-size:1.5rem;color:var(--success)">₹0.00</div>
+          </div>
+          <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-header" style="margin-bottom:8px">
+              <label>Total Expenses</label>
+              <div class="stat-icon expense" style="width:32px;height:32px"><i data-lucide="trending-down" style="width:16px;height:16px"></i></div>
+            </div>
+            <div class="stat-amount" id="sum-expense" style="font-size:1.5rem;color:var(--danger)">₹0.00</div>
+          </div>
+          <div class="stat-card" style="padding: 16px 20px;">
+            <div class="stat-header" style="margin-bottom:8px">
+              <label>Net Balance</label>
+              <div class="stat-icon transfer" style="width:32px;height:32px"><i data-lucide="wallet" style="width:16px;height:16px"></i></div>
+            </div>
+            <div class="stat-amount" id="sum-balance" style="font-size:1.5rem">₹0.00</div>
           </div>
         </div>
 
         <div class="card" style="padding:0;overflow:hidden">
           <div class="table-wrap" style="margin:0;padding:0">
-            <table>
+            <table style="border-collapse: collapse; width: 100%;">
               <thead><tr>
-                <th style="padding-left: 24px;">Transaction</th><th>Type</th><th>Description</th>
-                <th style="padding-right: 24px; text-align:right;">Amount</th><th style="width:60px"></th>
+                <th style="padding-left: 24px; cursor:pointer" onclick="setSort('date')">Date <span id="sort-date" style="font-size:10px; color:var(--text-muted)"></span></th>
+                <th style="cursor:pointer" onclick="setSort('desc')">Merchant <span id="sort-desc" style="font-size:10px; color:var(--text-muted)"></span></th>
+                <th style="cursor:pointer" onclick="setSort('cat')">Category <span id="sort-cat" style="font-size:10px; color:var(--text-muted)"></span></th>
+                <th>Type</th>
+                <th style="text-align:right; cursor:pointer" onclick="setSort('amount')">Amount <span id="sort-amount" style="font-size:10px; color:var(--text-muted)"></span></th>
+                <th style="padding-right: 24px; width:60px; text-align:right">Actions</th>
               </tr></thead>
               <tbody id="tx-tbody">
-                <tr><td style="padding-left: 24px;"><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-badge"></div></td><td><div class="skeleton skeleton-text" style="width:90%"></div></td><td><div class="skeleton skeleton-text" style="width:60%;float:right"></div></td><td></td></tr>
-                <tr><td style="padding-left: 24px;"><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-badge"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:50%;float:right"></div></td><td></td></tr>
+                <tr><td colspan="6" style="padding: 40px; text-align:center"><div class="spinner" style="position:relative; transform:none; left:auto; top:auto; margin:0 auto"></div></td></tr>
               </tbody>
             </table>
           </div>
@@ -291,10 +323,48 @@ document.addEventListener('keydown', (e) => {
 });
 function openCmdK() {
   document.getElementById('cmd-modal').classList.add('open');
-  setTimeout(() => document.getElementById('cmd-input').focus(), 100);
+  const input = document.getElementById('cmd-input');
+  input.value = '';
+  input.dispatchEvent(new Event('input')); // reset to quick actions
+  setTimeout(() => input.focus(), 100);
 }
 document.getElementById('cmd-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('cmd-modal')) e.target.classList.remove('open');
+});
+
+document.getElementById('cmd-input').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  const resultsDiv = document.getElementById('cmd-results');
+  if (!q) {
+    resultsDiv.innerHTML = `
+      <div class="cmd-group-label">Quick Actions</div>
+      <button class="cmd-item selected" onclick="openModal(); document.getElementById('cmd-modal').classList.remove('open')"><i data-lucide="plus"></i> Add New Transaction</button>
+      <button class="cmd-item" onclick="openScanner()"><i data-lucide="scan-line"></i> Scan Receipt</button>
+      <button class="cmd-item" onclick="window.location.href='budget.html'"><i data-lucide="pie-chart"></i> Manage Budgets</button>
+    `;
+    lucide.createIcons();
+    return;
+  }
+  
+  const filtered = globalTxList.filter(t => 
+    (t.description || '').toLowerCase().includes(q) || 
+    (t.categoryName || '').toLowerCase().includes(q)
+  ).slice(0, 5);
+
+  let html = \`<div class="cmd-group-label">Transactions</div>\`;
+  if (!filtered.length) {
+    html += \`<div style="padding: 12px 16px; color: var(--text-muted); font-size: 0.9rem">No transactions found</div>\`;
+  } else {
+    html += filtered.map(t => \`
+      <button class="cmd-item" onclick="document.getElementById('cmd-modal').classList.remove('open'); editTransaction(\${t.id},'\${t.type}',\${t.amount},'\${escape(t.description||'')}','\${t.date}',\${t.categoryId||'null'})">
+        <i data-lucide="\${getCategoryIcon(t.categoryName)}"></i> 
+        <span style="flex:1">\${t.description || t.categoryName || 'Uncategorized'}</span>
+        <span style="font-weight:600; color: \${t.type==='INCOME'?'var(--success)':'var(--text-main)'}">\${t.type==='INCOME'?'+':'-'}₹\${t.amount.toLocaleString('en-IN')}</span>
+      </button>
+    \`).join('');
+  }
+  resultsDiv.innerHTML = html;
+  lucide.createIcons();
 });
 
 // Scanner Mock Logic
@@ -373,6 +443,7 @@ async function saveScannedTransaction() {
 
 let categories = [];
 let editId = null;
+let globalTxList = [];
 
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.header-dropdown-wrapper') && !e.target.closest('.profile-card')) {
@@ -413,7 +484,7 @@ async function loadCategories() {
   } catch(e) {}
   
   if (!Array.isArray(categories)) categories = [];
-  
+
   const filterCat = document.getElementById('filter-cat');
   if (filterCat) {
     filterCat.innerHTML = '<option value="">All Categories</option>' +
@@ -430,13 +501,13 @@ function populateCategorySelect() {
 
 function getDemoTransactions() {
   return [
-    { id: 991, date: "2023-10-24", type: "EXPENSE", categoryName: "Food", description: "Starbucks Coffee", amount: 350 },
-    { id: 992, date: "2023-10-23", type: "EXPENSE", categoryName: "Shopping", description: "Amazon Prime Subscription", amount: 1499 },
-    { id: 993, date: "2023-10-22", type: "INCOME", categoryName: "Salary", description: "Tech Corp Inc. Monthly Salary", amount: 85000 },
-    { id: 994, date: "2023-10-20", type: "EXPENSE", categoryName: "Bills", description: "Electricity Board Payment", amount: 3200 },
-    { id: 995, date: "2023-10-18", type: "EXPENSE", categoryName: "Travel", description: "Uber Ride to Airport", amount: 450 },
+    { id: 991, date: "2023-10-24", type: "INCOME", categoryName: "Salary", description: "Tech Corp Salary", amount: 40000 },
+    { id: 992, date: "2023-10-23", type: "EXPENSE", categoryName: "Shopping", description: "Amazon", amount: 1299 },
+    { id: 993, date: "2023-10-22", type: "EXPENSE", categoryName: "Food", description: "Starbucks Coffee", amount: 350 },
+    { id: 994, date: "2023-10-20", type: "EXPENSE", categoryName: "Bills", description: "Electricity Bill", amount: 1200 },
+    { id: 995, date: "2023-10-18", type: "EXPENSE", categoryName: "Travel", description: "Uber Ride", amount: 220 },
     { id: 996, date: "2023-10-15", type: "EXPENSE", categoryName: "Entertainment", description: "Netflix Premium", amount: 649 },
-    { id: 997, date: "2023-10-12", type: "EXPENSE", categoryName: "Food", description: "Dinner at Taj", amount: 4500 }
+    { id: 997, date: "2023-10-12", type: "EXPENSE", categoryName: "Food", description: "Dinner at Taj", amount: 850 }
   ];
 }
 
@@ -450,6 +521,18 @@ function getCategoryIcon(name) {
   if (name.includes('health') || name.includes('medical')) return 'heart-pulse';
   if (name.includes('entertain')) return 'film';
   return 'credit-card';
+}
+
+function getCategoryEmoji(name) {
+  name = (name || '').toLowerCase();
+  if (name.includes('food') || name.includes('dining')) return '🍔';
+  if (name.includes('shop')) return '🛒';
+  if (name.includes('travel') || name.includes('transport') || name.includes('uber')) return '🚕';
+  if (name.includes('bill') || name.includes('utilit') || name.includes('electricity')) return '⚡';
+  if (name.includes('salary') || name.includes('income')) return '💼';
+  if (name.includes('health') || name.includes('medical')) return '💊';
+  if (name.includes('entertain')) return '🎬';
+  return '💰';
 }
 
 async function loadTransactions() {
@@ -473,17 +556,73 @@ async function loadTransactions() {
 
   if (!Array.isArray(list)) list = [];
 
-  if (!list.length && !type && !catId && !from && !to) {
-    list = getDemoTransactions();
+  // Always merge demo data to keep the UI looking full and active during testing
+  if (list.length < 5 && !type && !catId && !from && !to) {
+    list = [...list, ...getDemoTransactions()];
   }
+
+  globalTxList = list;
+  applyLocalFilters();
+}
+
+let currentSort = 'date';
+let sortDesc = true;
+
+function setSort(col) {
+  if (currentSort === col) {
+    sortDesc = !sortDesc;
+  } else {
+    currentSort = col;
+    sortDesc = true;
+  }
+  applyLocalFilters();
+}
+
+function updateSortIcons() {
+  ['date', 'desc', 'cat', 'amount'].forEach(col => {
+    const el = document.getElementById('sort-' + col);
+    if(el) el.innerHTML = currentSort === col ? (sortDesc ? '↓' : '↑') : '';
+  });
+}
+
+function applyLocalFilters() {
+  const q = (document.getElementById('filter-search').value || '').toLowerCase();
+  let list = globalTxList.filter(t => {
+    if (!q) return true;
+    return (t.description || '').toLowerCase().includes(q) || 
+           (t.categoryName || '').toLowerCase().includes(q) ||
+           (t.amount && t.amount.toString().includes(q));
+  });
+
+  list.sort((a, b) => {
+    let cmp = 0;
+    if (currentSort === 'date') cmp = new Date(a.date) - new Date(b.date);
+    else if (currentSort === 'amount') cmp = a.amount - b.amount;
+    else if (currentSort === 'desc') cmp = (a.description||'').localeCompare(b.description||'');
+    else if (currentSort === 'cat') cmp = (a.categoryName||'').localeCompare(b.categoryName||'');
+    return sortDesc ? -cmp : cmp;
+  });
 
   renderTable(list);
 }
 
 function renderTable(list) {
+  updateSortIcons();
+
+  // Calculate Summaries
+  let inc = 0, exp = 0;
+  list.forEach(t => { if(t.type==='INCOME') inc+=t.amount; else exp+=t.amount; });
+  document.getElementById('sum-income').textContent = '+₹' + inc.toLocaleString('en-IN', {minimumFractionDigits:2});
+  document.getElementById('sum-expense').textContent = '-₹' + exp.toLocaleString('en-IN', {minimumFractionDigits:2});
+  
+  const bal = inc - exp;
+  const balEl = document.getElementById('sum-balance');
+  balEl.textContent = (bal>=0?'+':'-') + '₹' + Math.abs(bal).toLocaleString('en-IN', {minimumFractionDigits:2});
+  balEl.style.color = bal >= 0 ? 'var(--success)' : 'var(--danger)';
+
   const tbody = document.getElementById('tx-tbody');
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="5">
+    tbody.innerHTML = `<tr><td colspan="6">
       <div class="empty-state">
         <i data-lucide="inbox"></i>
         <div>No transactions found matching your criteria.</div>
@@ -493,20 +632,16 @@ function renderTable(list) {
   }
   
   tbody.innerHTML = list.map(t => `
-    <tr>
-      <td style="padding-left: 24px;">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:40px;height:40px;border-radius:10px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;color:var(--text-muted)">
-            <i data-lucide="${getCategoryIcon(t.categoryName)}"></i>
-          </div>
-          <div>
-            <div style="font-weight:600;color:var(--text-main);margin-bottom:2px">${t.categoryName || 'Uncategorized'}</div>
-            <div style="font-size:0.8rem;color:var(--text-muted)">${t.date}</div>
-          </div>
+    <tr class="table-row-hover">
+      <td style="padding-left: 24px; font-size:0.9rem; color:var(--text-muted); white-space:nowrap">${t.date}</td>
+      <td style="font-weight:500; color:var(--text-main); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${t.description || '—'}</td>
+      <td>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-surface);padding:4px 10px;border-radius:20px;font-size:0.85rem;border:1px solid var(--border)">
+          <span>${getCategoryEmoji(t.categoryName)}</span>
+          <span>${t.categoryName || 'Uncategorized'}</span>
         </div>
       </td>
       <td><span class="badge badge-${t.type.toLowerCase()}"><i data-lucide="${t.type==='INCOME'?'arrow-down-to-line':'arrow-up-right'}" style="width:12px;height:12px"></i> ${t.type}</span></td>
-      <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)">${t.description || '—'}</td>
       <td class="amount-${t.type.toLowerCase()}" style="text-align: right; font-weight:600; font-size:1.05rem">${t.type==='INCOME' ? '+' : '-'}₹${t.amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
       <td style="padding-right: 24px;">
         <div class="action-menu-wrapper" style="float:right">
@@ -526,6 +661,7 @@ function renderTable(list) {
 }
 
 function clearFilters() {
+  document.getElementById('filter-search').value = '';
   document.getElementById('filter-type').value = '';
   document.getElementById('filter-cat').value  = '';
   document.getElementById('filter-from').value = '';

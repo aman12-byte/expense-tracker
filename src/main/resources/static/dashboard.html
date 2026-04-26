@@ -221,23 +221,7 @@
       
       <aside class="right-panel">
         
-        <div>
-          <h3 class="widget-title">Smart Insights</h3>
-          <div class="insight-card">
-            <div class="insight-icon"><i data-lucide="sparkles"></i></div>
-            <div class="insight-text">
-              <strong>Great job!</strong>
-              You've spent <span style="color:var(--success)">18% less</span> on Dining out this month compared to last month. Keep it up!
-            </div>
-          </div>
-          <div class="insight-card" style="margin-top:12px">
-            <div class="insight-icon" style="background:var(--danger-light);color:var(--danger)"><i data-lucide="alert-triangle"></i></div>
-            <div class="insight-text">
-              <strong>Budget Alert</strong>
-              Your "Shopping" category is at 92% of its limit.
-            </div>
-          </div>
-        </div>
+
 
         <div class="card">
           <h3 class="widget-title" style="margin-bottom:20px">Budget Overview</h3>
@@ -253,6 +237,7 @@
           <div style="position:relative; height:200px; width:100%;">
             <canvas id="pieChart"></canvas>
           </div>
+          <div id="category-legend" style="margin-top: 24px; display:flex; flex-direction:column; gap:16px;"></div>
         </div>
 
         <div class="card">
@@ -592,7 +577,12 @@ function getDemoChartData() {
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    data.push({ yr: d.getFullYear(), mo: d.getMonth() + 1, total: Math.floor(Math.random() * 20000) + 15000 });
+    data.push({ 
+      yr: d.getFullYear(), 
+      mo: d.getMonth() + 1, 
+      income: Math.floor(Math.random() * 10000) + 40000,
+      expense: Math.floor(Math.random() * 8000) + 20000 
+    });
   }
   return data;
 }
@@ -611,26 +601,38 @@ async function loadDashboard() {
   const year  = document.getElementById('year-select').value;
   document.getElementById('month-label').textContent = `${MONTHS[month-1]} ${year} Overview`;
 
-  let data = { income: 0, expenses: 0, categoryExpenses: [], monthlyExpenses: [] };
+  let data = { income: 0, expenses: 0, categoryExpenses: [], monthlyCashflow: [] };
   try {
     const res  = await fetch(`/api/dashboard?month=${month}&year=${year}`);
     const apiData = await res.json();
     if(apiData.income > 0 || apiData.expenses > 0) data = apiData;
   } catch(e) {}
 
-  // Fallback to demo data if empty
+  // Fallback to demo data if completely empty
   if(data.income === 0 && data.expenses === 0) {
     data.income = 95000;
     data.expenses = 42350;
     data.categoryExpenses = getDemoCategoryData();
-    data.monthlyExpenses = getDemoChartData();
   }
+
+  // Always fill the graph with realistic random data so it looks full for the demo
+  const mockCashflow = getDemoChartData();
+  if (Array.isArray(data.monthlyCashflow)) {
+    data.monthlyCashflow.forEach(actual => {
+      const mock = mockCashflow.find(m => m.yr == (actual.YR || actual.yr) && m.mo == (actual.MO || actual.mo));
+      if (mock) {
+        mock.income = actual.INCOME || actual.income || mock.income;
+        mock.expense = actual.EXPENSE || actual.expense || mock.expense;
+      }
+    });
+  }
+  data.monthlyCashflow = mockCashflow;
 
   document.getElementById('stat-income') .textContent = fmt(data.income);
   document.getElementById('stat-expense').textContent = fmt(data.expenses);
 
   renderPieChart(data.categoryExpenses);
-  renderAreaChart(data.monthlyExpenses);
+  renderAreaChart(data.monthlyCashflow);
   loadRecentTransactions(month, year);
 }
 
@@ -663,8 +665,12 @@ async function loadWidgetBudgets() {
 function fmt(v) { return '₹' + (v || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
 
 function renderPieChart(data) {
+  if (!Array.isArray(data)) data = [];
   const ctx = document.getElementById('pieChart').getContext('2d');
   if (pieChart) pieChart.destroy();
+  
+  const totalSum = data.reduce((sum, d) => sum + (d.TOTAL || d.total), 0);
+
   pieChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -680,41 +686,81 @@ function renderPieChart(data) {
       plugins: { legend: { display: false } }
     }
   });
+
+  const legendDiv = document.getElementById('category-legend');
+  legendDiv.innerHTML = data.map(d => {
+    const val = d.TOTAL || d.total;
+    const color = d.COLOR || d.color || '#6366F1';
+    const name = d.CATEGORY || d.category;
+    const pct = totalSum > 0 ? Math.round((val / totalSum) * 100) : 0;
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:14px; height:14px; border-radius:4px; background:${color}"></div>
+          <span style="color:var(--text-main); font-weight:500">${name}</span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="color:var(--text-main); font-weight:600">₹${val.toLocaleString('en-IN', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+          <span style="color:var(--text-muted); width:35px; text-align:right; font-weight:500">${pct}%</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderAreaChart(data) {
+  if (!Array.isArray(data)) data = [];
   const months = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({ yr: d.getFullYear(), mo: d.getMonth() + 1, label: MONTHS[d.getMonth()] });
   }
-  const amounts = months.map(m => {
+  
+  const incomeAmounts = months.map(m => {
     const found = data.find(d => (d.YR||d.yr) == m.yr && (d.MO||d.mo) == m.mo);
-    return found ? (found.TOTAL || found.total) : 0;
+    return found ? (found.INCOME || found.income || 0) : 0;
+  });
+  const expenseAmounts = months.map(m => {
+    const found = data.find(d => (d.YR||d.yr) == m.yr && (d.MO||d.mo) == m.mo);
+    return found ? (found.EXPENSE || found.expense || 0) : 0;
   });
 
   const ctx = document.getElementById('areaChart').getContext('2d');
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   
-  let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-  gradient.addColorStop(0, isDark ? 'rgba(129, 140, 248, 0.4)' : 'rgba(99, 102, 241, 0.2)');
-  gradient.addColorStop(1, isDark ? 'rgba(129, 140, 248, 0.0)' : 'rgba(99, 102, 241, 0.0)');
+  let gradInc = ctx.createLinearGradient(0, 0, 0, 400);
+  gradInc.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+  gradInc.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+  let gradExp = ctx.createLinearGradient(0, 0, 0, 400);
+  gradExp.addColorStop(0, isDark ? 'rgba(129, 140, 248, 0.3)' : 'rgba(99, 102, 241, 0.2)');
+  gradExp.addColorStop(1, isDark ? 'rgba(129, 140, 248, 0.0)' : 'rgba(99, 102, 241, 0.0)');
 
   const primaryColor = isDark ? '#818CF8' : '#6366F1';
+  const successColor = '#10B981';
 
   if (areaChart) areaChart.destroy();
   areaChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: months.map(m => m.label),
-      datasets: [{
-        label: 'Cashflow (₹)', data: amounts,
-        borderColor: primaryColor, backgroundColor: gradient,
-        borderWidth: 3, pointBackgroundColor: '#FFFFFF', pointBorderColor: primaryColor,
-        pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
-        fill: true, tension: 0.4 // Smooth curve!
-      }]
+      datasets: [
+        {
+          label: 'Income (₹)', data: incomeAmounts,
+          borderColor: successColor, backgroundColor: gradInc,
+          borderWidth: 3, pointBackgroundColor: '#FFFFFF', pointBorderColor: successColor,
+          pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+          fill: true, tension: 0.4
+        },
+        {
+          label: 'Expenses (₹)', data: expenseAmounts,
+          borderColor: primaryColor, backgroundColor: gradExp,
+          borderWidth: 3, pointBackgroundColor: '#FFFFFF', pointBorderColor: primaryColor,
+          pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+          fill: true, tension: 0.4
+        }
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -743,10 +789,14 @@ function getCategoryIcon(name) {
 async function loadRecentTransactions(month, year) {
   let list = [];
   try {
-    const res  = await fetch(`/api/transactions?type=&from=${year}-${String(month).padStart(2,'0')}-01&to=${year}-${String(month).padStart(2,'0')}-31`);
-    list = await res.json();
+    const lastDay = new Date(year, month, 0).getDate();
+    const res  = await fetch(`/api/transactions?type=&from=${year}-${String(month).padStart(2,'0')}-01&to=${year}-${String(month).padStart(2,'0')}-${lastDay}`);
+    if (res.ok) {
+      list = await res.json();
+    }
   } catch(e) {}
 
+  if (!Array.isArray(list)) list = [];
   if (!list.length) list = getDemoTransactions();
 
   const tbody = document.getElementById('recent-tbody');
