@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transactions — Expense Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>if(localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');</script>
+  <style>
+    .scanner-preview-container {
+      position: relative; width: 100%; height: 200px; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 20px; background: var(--bg-surface); border: 1px solid var(--border);
+    }
+    .scanner-preview-container img { width: 100%; height: 100%; object-fit: contain; opacity: 0.5; }
+    .scanner-scanline { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--accent); box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent); animation: scan 2s linear infinite; }
+    @keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+    .spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border: 4px solid var(--accent-light); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i data-lucide="activity" stroke-width="2.5"></i></div>
+      <span class="brand-name">ExpenseTracker</span>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"    class="nav-link"><i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard</a>
+      <a href="transactions.html" class="nav-link active"><i data-lucide="arrow-left-right" class="nav-icon"></i> Transactions</a>
+      <a href="categories.html"   class="nav-link"><i data-lucide="tags" class="nav-icon"></i> Categories</a>
+      <a href="budget.html"       class="nav-link"><i data-lucide="pie-chart" class="nav-icon"></i> Budget</a>
+      <a href="#"                 class="nav-link"><i data-lucide="bar-chart-2" class="nav-icon"></i> Reports</a>
+      <a href="#"                 class="nav-link"><i data-lucide="target" class="nav-icon"></i> Goals</a>
+      <a href="#"                 class="nav-link"><i data-lucide="settings" class="nav-icon"></i> Settings</a>
+    </nav>
+    
+    <div class="upgrade-widget">
+      <h4>Upgrade to Pro</h4>
+      <p>Get unlimited categories, receipt scanning & advanced reports.</p>
+      <button>Upgrade Now</button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="profile-card" onclick="document.getElementById('header-dropdown').classList.toggle('show')">
+        <div class="profile-avatar-img" id="sidebar-avatar">U</div>
+        <div class="profile-info">
+          <span class="profile-name" id="sidebar-username">User</span>
+          <span class="profile-badge"><span class="profile-badge-dot"></span> Free Plan</span>
+        </div>
+        <i data-lucide="chevron-up" style="width: 16px; height: 16px; color: var(--text-muted)"></i>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    
+    <header class="top-navbar">
+      <div class="search-bar" onclick="openCmdK()">
+        <i data-lucide="search"></i>
+        <input type="text" placeholder="Search transactions..." readonly style="cursor:pointer">
+        <span class="search-shortcut">⌘K</span>
+      </div>
+      
+      <div class="nav-actions">
+        <button class="nav-icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">
+          <i data-lucide="moon" id="theme-icon"></i>
+        </button>
+        <button class="nav-icon-btn">
+          <i data-lucide="bell"></i>
+        </button>
+        
+        <div class="header-dropdown-wrapper">
+          <div class="header-avatar" id="nav-avatar" onclick="document.getElementById('header-dropdown').classList.toggle('show')">U</div>
+          <div class="header-dropdown" id="header-dropdown">
+            <div class="dropdown-header">
+              <p>Signed in as</p>
+              <h5 id="drop-username">User</h5>
+            </div>
+            <div class="dropdown-item"><i data-lucide="user"></i> My Profile</div>
+            <div class="dropdown-item"><i data-lucide="settings"></i> Account Settings</div>
+            <div style="height:1px;background:var(--border);margin:4px 0"></div>
+            <div class="dropdown-item danger" onclick="logout()"><i data-lucide="log-out"></i> Log out</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-container" style="max-width: 1200px;">
+      <div class="main-feed">
+        <div class="page-header">
+          <div>
+            <h1>Transactions</h1>
+            <p>View, add and manage your income and expenses</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-secondary btn-icon" title="Export CSV"><i data-lucide="download"></i></button>
+            <button class="btn btn-secondary" onclick="openScanner()"><i data-lucide="scan-line" style="width:16px;height:16px;"></i> Scan Receipt</button>
+            <button class="btn btn-primary" onclick="openModal()"><i data-lucide="plus" style="width:16px;height:16px;"></i> Add Transaction</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="filters">
+            <select id="filter-type" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+              <option value="">All Types</option>
+              <option value="INCOME">Income</option>
+              <option value="EXPENSE">Expense</option>
+            </select>
+            <select id="filter-cat" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+              <option value="">All Categories</option>
+            </select>
+            <input type="date" id="filter-from" onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+            <input type="date" id="filter-to"   onchange="loadTransactions()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+            <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear Filters</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrap" style="margin:0;padding:0">
+            <table>
+              <thead><tr>
+                <th style="padding-left: 24px;">Transaction</th><th>Type</th><th>Description</th>
+                <th style="padding-right: 24px; text-align:right;">Amount</th><th style="width:60px"></th>
+              </tr></thead>
+              <tbody id="tx-tbody">
+                <tr><td style="padding-left: 24px;"><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-badge"></div></td><td><div class="skeleton skeleton-text" style="width:90%"></div></td><td><div class="skeleton skeleton-text" style="width:60%;float:right"></div></td><td></td></tr>
+                <tr><td style="padding-left: 24px;"><div class="skeleton skeleton-text" style="width:70%"></div></td><td><div class="skeleton skeleton-badge"></div></td><td><div class="skeleton skeleton-text" style="width:80%"></div></td><td><div class="skeleton skeleton-text" style="width:50%;float:right"></div></td><td></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Cmd+K Modal -->
+<div class="modal-overlay" id="cmd-modal">
+  <div class="cmd-modal">
+    <div class="cmd-input-container">
+      <i data-lucide="search"></i>
+      <input type="text" class="cmd-input" id="cmd-input" placeholder="Search transactions, budgets, or type a command...">
+      <span class="search-shortcut" style="font-size:0.6rem">ESC to close</span>
+    </div>
+    <div class="cmd-results" id="cmd-results">
+      <div class="cmd-group-label">Quick Actions</div>
+      <button class="cmd-item selected" onclick="openModal(); document.getElementById('cmd-modal').classList.remove('open')"><i data-lucide="plus"></i> Add New Transaction</button>
+      <button class="cmd-item" onclick="openScanner()"><i data-lucide="scan-line"></i> Scan Receipt</button>
+      <button class="cmd-item" onclick="window.location.href='budget.html'"><i data-lucide="pie-chart"></i> Manage Budgets</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Receipt Scanner Modal -->
+<div class="modal-overlay" id="scanner-modal">
+  <div class="modal" style="max-width: 450px; text-align:left">
+    <div id="scanner-state-1">
+      <div class="modal-header" style="justify-content:space-between;margin-bottom:16px">
+        <h2 style="font-size:1.25rem;font-weight:600"><i data-lucide="scan-line" style="display:inline;vertical-align:text-bottom;margin-right:8px;color:var(--accent)"></i>Scan Receipt</h2>
+        <button class="modal-close" onclick="closeScanner()"><i data-lucide="x"></i></button>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px">Our AI will automatically extract the amount, date, merchant, and category from your receipt photo.</p>
+      
+      <input type="file" id="receipt-upload" accept="image/*" style="display:none" onchange="handleReceiptUpload(event)">
+      
+      <div class="scanner-area" onclick="document.getElementById('receipt-upload').click()">
+        <i data-lucide="camera"></i>
+        <div style="font-weight:600;color:var(--text-main);margin-bottom:4px">Click to upload photo</div>
+        <div style="font-size:0.8rem;color:var(--text-muted)">or drag and drop PNG, JPG</div>
+      </div>
+    </div>
+
+    <div id="scanner-state-2" style="display:none;text-align:center">
+      <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:24px">Analyzing Receipt...</h2>
+      <div class="scanner-preview-container">
+        <img id="scanning-img-preview" src="" alt="Receipt Preview">
+        <div class="scanner-scanline"></div>
+        <div class="spinner"></div>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.9rem;">Extracting line items and merchant details via OCR...</p>
+    </div>
+
+    <div id="scanner-state-3" style="display:none">
+      <div class="modal-header" style="justify-content:space-between;margin-bottom:16px">
+        <h2 style="font-size:1.25rem;font-weight:600;color:var(--success)"><i data-lucide="check-circle" style="display:inline;vertical-align:text-bottom;margin-right:8px"></i>Extracted Data</h2>
+        <button class="modal-close" onclick="closeScanner()"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div style="display:flex;gap:16px;margin-bottom:20px">
+        <img id="extracted-img-preview" src="" style="width:80px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+        <div style="flex:1">
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">Review the AI extracted details below and save to your transactions.</p>
+          <div class="badge badge-success" style="font-size:0.7rem;background:var(--success-light);color:var(--success)">High Confidence Match</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="scan-amount" style="font-weight:700;color:var(--accent);font-size:1.1rem">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="scan-date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Merchant / Description</label>
+        <input type="text" id="scan-desc">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="scan-category"></select>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeScanner()">Discard</button>
+        <button class="btn btn-primary" onclick="saveScannedTransaction()"><i data-lucide="save" style="width:16px"></i> Save Transaction</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Add / Edit Modal ===== -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Transaction</h2>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="type-tabs">
+      <button class="type-tab active income"  id="tab-income"  onclick="setType('INCOME')"><i data-lucide="arrow-down-to-line"></i> Income</button>
+      <button class="type-tab        expense" id="tab-expense" onclick="setType('EXPENSE')"><i data-lucide="arrow-up-right"></i> Expense</button>
+    </div>
+    <input type="hidden" id="tx-id">
+    <input type="hidden" id="tx-type" value="INCOME">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="tx-amount">Amount (₹) *</label>
+        <input type="number" id="tx-amount" placeholder="0.00" step="0.01" min="0.01">
+      </div>
+      <div class="form-group">
+        <label for="tx-date">Date *</label>
+        <input type="date" id="tx-date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="tx-category">Category</label>
+      <select id="tx-category"></select>
+    </div>
+    <div class="form-group">
+      <label for="tx-description">Description</label>
+      <input type="text" id="tx-description" placeholder="e.g. Lunch at canteen">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveTransaction()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+function toggleTheme() {
+  const root = document.documentElement;
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  root.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  document.getElementById('theme-icon').setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+  lucide.createIcons();
+}
+document.addEventListener("DOMContentLoaded", () => {
+  if (document.documentElement.getAttribute('data-theme') === 'dark') {
+    document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
+  }
+  lucide.createIcons();
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCmdK(); }
+  if (e.key === 'Escape') {
+    document.getElementById('cmd-modal').classList.remove('open');
+    document.getElementById('scanner-modal').classList.remove('open');
+    closeModal();
+  }
+});
+function openCmdK() {
+  document.getElementById('cmd-modal').classList.add('open');
+  setTimeout(() => document.getElementById('cmd-input').focus(), 100);
+}
+document.getElementById('cmd-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('cmd-modal')) e.target.classList.remove('open');
+});
+
+// Scanner Mock Logic
+function openScanner() {
+  document.getElementById('cmd-modal').classList.remove('open');
+  document.getElementById('scanner-modal').classList.add('open');
+  document.getElementById('scanner-state-1').style.display = 'block';
+  document.getElementById('scanner-state-2').style.display = 'none';
+  document.getElementById('scanner-state-3').style.display = 'none';
+  document.getElementById('receipt-upload').value = '';
+}
+function closeScanner() { document.getElementById('scanner-modal').classList.remove('open'); }
+
+const mockScans = [
+  { merchant: "Starbucks Coffee", amount: 280, cat: "Food" },
+  { merchant: "Amazon Online", amount: 1499, cat: "Shopping" },
+  { merchant: "Uber Rides", amount: 230, cat: "Travel" },
+  { merchant: "Zomato Delivery", amount: 450, cat: "Food" },
+  { merchant: "Shell Petrol Station", amount: 2500, cat: "Travel" },
+  { merchant: "Reliance Fresh", amount: 840, cat: "Food" }
+];
+
+function handleReceiptUpload(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('scanner-state-1').style.display = 'none';
+    document.getElementById('scanner-state-2').style.display = 'block';
+    document.getElementById('scanning-img-preview').src = ev.target.result;
+    
+    setTimeout(() => {
+      document.getElementById('scanner-state-2').style.display = 'none';
+      document.getElementById('scanner-state-3').style.display = 'block';
+      document.getElementById('extracted-img-preview').src = ev.target.result;
+      
+      const mock = mockScans[Math.floor(Math.random() * mockScans.length)];
+      document.getElementById('scan-amount').value = mock.amount;
+      document.getElementById('scan-desc').value = mock.merchant;
+      document.getElementById('scan-date').value = new Date().toISOString().split('T')[0];
+      
+      const sel = document.getElementById('scan-category');
+      sel.innerHTML = '<option value="">-- Select Category --</option>' + categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      const match = categories.find(c => c.name.toLowerCase().includes(mock.cat.toLowerCase()));
+      if(match) sel.value = match.id;
+
+      showToast("OCR Extracted Successfully!", "success");
+    }, 2500);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveScannedTransaction() {
+  const amount = parseFloat(document.getElementById('scan-amount').value);
+  const date   = document.getElementById('scan-date').value;
+  const desc   = document.getElementById('scan-desc').value;
+  const cat    = document.getElementById('scan-category').value;
+
+  if (!amount || amount <= 0) { showToast('Amount is required', 'error'); return; }
+  if (!date) { showToast('Date is required', 'error'); return; }
+
+  const body = { type: 'EXPENSE', amount, date, description: desc, categoryId: cat || null };
+  const res = await fetch('/api/transactions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  
+  if (res.ok) {
+    closeScanner();
+    loadTransactions();
+    showToast('Receipt saved to transactions!', 'success');
+  } else {
+    showToast('Failed to save', 'error');
+  }
+}
+
+let categories = [];
+let editId = null;
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.header-dropdown-wrapper') && !e.target.closest('.profile-card')) {
+    document.getElementById('header-dropdown').classList.remove('show');
+  }
+  if (!e.target.closest('.action-menu-wrapper')) {
+    document.querySelectorAll('.action-dropdown').forEach(d => d.classList.remove('show'));
+  }
+});
+
+function toggleActionMenu(id) {
+  document.querySelectorAll('.action-dropdown').forEach(d => {
+    if (d.id !== `action-dropdown-${id}`) d.classList.remove('show');
+  });
+  document.getElementById(`action-dropdown-${id}`).classList.toggle('show');
+}
+
+async function init() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) { window.location.href = '/index.html'; return; }
+  const user = await res.json();
+  document.getElementById('sidebar-username').textContent = user.username;
+  document.getElementById('drop-username').textContent = user.username;
+  document.getElementById('sidebar-avatar').textContent = user.username.charAt(0).toUpperCase();
+  document.getElementById('nav-avatar').textContent = user.username.charAt(0).toUpperCase();
+  
+  await loadCategories();
+  setTimeout(loadTransactions, 300);
+}
+
+async function loadCategories() {
+  try {
+    const res = await fetch('/api/categories');
+    categories = await res.json();
+  } catch(e) {}
+  const filterCat = document.getElementById('filter-cat');
+  filterCat.innerHTML = '<option value="">All Categories</option>' +
+    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  populateCategorySelect();
+}
+
+function populateCategorySelect() {
+  const sel = document.getElementById('tx-category');
+  sel.innerHTML = '<option value="">-- No Category --</option>' +
+    categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function getDemoTransactions() {
+  return [
+    { id: 991, date: "2023-10-24", type: "EXPENSE", categoryName: "Food", description: "Starbucks Coffee", amount: 350 },
+    { id: 992, date: "2023-10-23", type: "EXPENSE", categoryName: "Shopping", description: "Amazon Prime Subscription", amount: 1499 },
+    { id: 993, date: "2023-10-22", type: "INCOME", categoryName: "Salary", description: "Tech Corp Inc. Monthly Salary", amount: 85000 },
+    { id: 994, date: "2023-10-20", type: "EXPENSE", categoryName: "Bills", description: "Electricity Board Payment", amount: 3200 },
+    { id: 995, date: "2023-10-18", type: "EXPENSE", categoryName: "Travel", description: "Uber Ride to Airport", amount: 450 },
+    { id: 996, date: "2023-10-15", type: "EXPENSE", categoryName: "Entertainment", description: "Netflix Premium", amount: 649 },
+    { id: 997, date: "2023-10-12", type: "EXPENSE", categoryName: "Food", description: "Dinner at Taj", amount: 4500 }
+  ];
+}
+
+function getCategoryIcon(name) {
+  name = (name || '').toLowerCase();
+  if (name.includes('food') || name.includes('dining') || name.includes('restaurant')) return 'coffee';
+  if (name.includes('shop')) return 'shopping-bag';
+  if (name.includes('travel') || name.includes('transport')) return 'car';
+  if (name.includes('bill') || name.includes('utilit')) return 'zap';
+  if (name.includes('salary') || name.includes('income')) return 'briefcase';
+  if (name.includes('health') || name.includes('medical')) return 'heart-pulse';
+  if (name.includes('entertain')) return 'film';
+  return 'credit-card';
+}
+
+async function loadTransactions() {
+  const type   = document.getElementById('filter-type').value;
+  const catId  = document.getElementById('filter-cat').value;
+  const from   = document.getElementById('filter-from').value;
+  const to     = document.getElementById('filter-to').value;
+
+  let url = `/api/transactions?type=${type}`;
+  if (catId) url += `&categoryId=${catId}`;
+  if (from)  url += `&from=${from}`;
+  if (to)    url += `&to=${to}`;
+
+  let list = [];
+  try {
+    const res  = await fetch(url);
+    list = await res.json();
+  } catch(e) {}
+
+  if (!list.length && !type && !catId && !from && !to) {
+    list = getDemoTransactions();
+  }
+
+  renderTable(list);
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('tx-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5">
+      <div class="empty-state">
+        <i data-lucide="inbox"></i>
+        <div>No transactions found matching your criteria.</div>
+      </div></td></tr>`;
+    lucide.createIcons();
+    return;
+  }
+  
+  tbody.innerHTML = list.map(t => `
+    <tr>
+      <td style="padding-left: 24px;">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:10px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;color:var(--text-muted)">
+            <i data-lucide="${getCategoryIcon(t.categoryName)}"></i>
+          </div>
+          <div>
+            <div style="font-weight:600;color:var(--text-main);margin-bottom:2px">${t.categoryName || 'Uncategorized'}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">${t.date}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-${t.type.toLowerCase()}"><i data-lucide="${t.type==='INCOME'?'arrow-down-to-line':'arrow-up-right'}" style="width:12px;height:12px"></i> ${t.type}</span></td>
+      <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted)">${t.description || '—'}</td>
+      <td class="amount-${t.type.toLowerCase()}" style="text-align: right; font-weight:600; font-size:1.05rem">${t.type==='INCOME' ? '+' : '-'}₹${t.amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+      <td style="padding-right: 24px;">
+        <div class="action-menu-wrapper" style="float:right">
+          <button class="action-btn" onclick="toggleActionMenu(${t.id}, event)"><i data-lucide="more-horizontal"></i></button>
+          <div class="action-dropdown" id="action-dropdown-${t.id}">
+            <button class="action-item" onclick="editTransaction(${t.id},'${t.type}',${t.amount},'${escape(t.description||'')}','${t.date}',${t.categoryId||'null'})">
+              <i data-lucide="pencil" style="width:16px;height:16px"></i> Edit
+            </button>
+            <button class="action-item danger" onclick="deleteTransaction(${t.id})">
+              <i data-lucide="trash-2" style="width:16px;height:16px"></i> Delete
+            </button>
+          </div>
+        </div>
+      </td>
+    </tr>`).join('');
+  lucide.createIcons();
+}
+
+function clearFilters() {
+  document.getElementById('filter-type').value = '';
+  document.getElementById('filter-cat').value  = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value   = '';
+  loadTransactions();
+}
+
+function openModal() {
+  editId = null;
+  document.getElementById('modal-title').textContent = 'Add Transaction';
+  document.getElementById('tx-id').value          = '';
+  document.getElementById('tx-amount').value      = '';
+  document.getElementById('tx-description').value = '';
+  document.getElementById('tx-date').value        = new Date().toISOString().split('T')[0];
+  document.getElementById('tx-category').value    = '';
+  setType('INCOME');
+  populateCategorySelect();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function setType(type) {
+  document.getElementById('tx-type').value = type;
+  document.getElementById('tab-income') .classList.toggle('active', type === 'INCOME');
+  document.getElementById('tab-expense').classList.toggle('active', type === 'EXPENSE');
+}
+
+function editTransaction(id, type, amount, desc, date, catId) {
+  editId = id;
+  document.getElementById('modal-title')       .textContent = 'Edit Transaction';
+  document.getElementById('tx-id')      .value = id;
+  document.getElementById('tx-amount')  .value = amount;
+  document.getElementById('tx-description').value = unescape(desc);
+  document.getElementById('tx-date')    .value = date;
+  setType(type);
+  populateCategorySelect();
+  if (catId !== 'null') document.getElementById('tx-category').value = catId;
+  document.getElementById('modal').classList.add('open');
+}
+
+async function saveTransaction() {
+  const type   = document.getElementById('tx-type').value;
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const date   = document.getElementById('tx-date').value;
+  const cat    = document.getElementById('tx-category').value;
+  const desc   = document.getElementById('tx-description').value;
+
+  if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+  if (!date)                  { showToast('Please select a date', 'error'); return; }
+
+  const body = { type, amount, date, description: desc, categoryId: cat || null };
+  const id   = document.getElementById('tx-id').value;
+  const url  = id ? `/api/transactions/${id}` : '/api/transactions';
+  const method = id ? 'PUT' : 'POST';
+
+  const res = await fetch(url, {
+    method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    closeModal();
+    loadTransactions();
+    showToast(id ? 'Transaction updated!' : 'Transaction added!', 'success');
+  } else {
+    const err = await res.json();
+    showToast(err.error || 'Error saving transaction', 'error');
+  }
+}
+
+async function deleteTransaction(id) {
+  if (!confirm('Delete this transaction?')) return;
+  const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+  if (res.ok) { loadTransactions(); showToast('Transaction deleted', 'info'); }
+}
+
+function showToast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':type==='error'?'alert-circle':'info'}"></i> ${msg}`;
+  c.appendChild(t);
+  lucide.createIcons();
+  setTimeout(() => t.remove(), 3000);
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/index.html';
+}
+
+init();
+</script>
+</body>
+</html>

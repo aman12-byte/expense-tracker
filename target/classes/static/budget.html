@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget — Expense Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>if(localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');</script>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i data-lucide="activity" stroke-width="2.5"></i></div>
+      <span class="brand-name">ExpenseTracker</span>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"    class="nav-link"><i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard</a>
+      <a href="transactions.html" class="nav-link"><i data-lucide="arrow-left-right" class="nav-icon"></i> Transactions</a>
+      <a href="categories.html"   class="nav-link"><i data-lucide="tags" class="nav-icon"></i> Categories</a>
+      <a href="budget.html"       class="nav-link active"><i data-lucide="pie-chart" class="nav-icon"></i> Budget</a>
+      <a href="#"                 class="nav-link"><i data-lucide="bar-chart-2" class="nav-icon"></i> Reports</a>
+      <a href="#"                 class="nav-link"><i data-lucide="target" class="nav-icon"></i> Goals</a>
+      <a href="#"                 class="nav-link"><i data-lucide="settings" class="nav-icon"></i> Settings</a>
+    </nav>
+    
+    <div class="upgrade-widget">
+      <h4>Upgrade to Pro</h4>
+      <p>Get unlimited categories, receipt scanning & advanced reports.</p>
+      <button>Upgrade Now</button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="profile-card" onclick="document.getElementById('header-dropdown').classList.toggle('show')">
+        <div class="profile-avatar-img" id="sidebar-avatar">U</div>
+        <div class="profile-info">
+          <span class="profile-name" id="sidebar-username">User</span>
+          <span class="profile-badge"><span class="profile-badge-dot"></span> Free Plan</span>
+        </div>
+        <i data-lucide="chevron-up" style="width: 16px; height: 16px; color: var(--text-muted)"></i>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    
+    <header class="top-navbar">
+      <div class="search-bar" onclick="openCmdK()">
+        <i data-lucide="search"></i>
+        <input type="text" placeholder="Search budgets..." readonly style="cursor:pointer">
+        <span class="search-shortcut">⌘K</span>
+      </div>
+      
+      <div class="nav-actions">
+        <button class="nav-icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">
+          <i data-lucide="moon" id="theme-icon"></i>
+        </button>
+        <button class="nav-icon-btn">
+          <i data-lucide="bell"></i>
+        </button>
+        
+        <div class="header-dropdown-wrapper">
+          <div class="header-avatar" id="nav-avatar" onclick="document.getElementById('header-dropdown').classList.toggle('show')">U</div>
+          <div class="header-dropdown" id="header-dropdown">
+            <div class="dropdown-header">
+              <p>Signed in as</p>
+              <h5 id="drop-username">User</h5>
+            </div>
+            <div class="dropdown-item"><i data-lucide="user"></i> My Profile</div>
+            <div class="dropdown-item"><i data-lucide="settings"></i> Account Settings</div>
+            <div style="height:1px;background:var(--border);margin:4px 0"></div>
+            <div class="dropdown-item danger" onclick="logout()"><i data-lucide="log-out"></i> Log out</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-container" style="max-width: 1200px">
+      <div class="main-feed">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h1>Budget</h1>
+            <p id="month-label">Monthly spending limits</p>
+          </div>
+          <div class="header-actions">
+            <div style="display:flex;gap:8px;">
+              <select id="month-sel" class="form-group" onchange="loadBudgets()" style="margin:0; padding:8px 12px; height:38px; width:auto;">
+                <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+                <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+                <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+                <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+              </select>
+              <select id="year-sel" class="form-group" onchange="loadBudgets()" style="margin:0; padding:8px 12px; height:38px; width:auto;"></select>
+            </div>
+            <button class="btn btn-primary" onclick="openModal()"><i data-lucide="plus" style="width:16px;height:16px"></i> Set Budget</button>
+          </div>
+        </div>
+
+        <!-- Summary bar -->
+        <div class="card" style="margin-bottom:28px;padding:24px">
+          <div style="display:flex;gap:40px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:0.85rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">Total Budget</div>
+              <div style="font-size:1.5rem;font-weight:700;color:var(--text-main)" id="total-budget">₹0</div>
+            </div>
+            <div>
+              <div style="font-size:0.85rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">Total Spent</div>
+              <div style="font-size:1.5rem;font-weight:700;color:var(--danger)" id="total-spent">₹0</div>
+            </div>
+            <div>
+              <div style="font-size:0.85rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">Remaining</div>
+              <div style="font-size:1.5rem;font-weight:700;color:var(--success)" id="total-remaining">₹0</div>
+            </div>
+            <div style="border-left: 1px solid var(--border); padding-left: 40px;">
+              <div style="font-size:0.85rem;color:var(--text-muted);font-weight:600;margin-bottom:4px">Categories Set</div>
+              <div style="font-size:1.5rem;font-weight:700;color:var(--accent)" id="total-count">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="alerts-container"></div>
+
+        <div class="budget-grid" id="budget-grid">
+          <!-- Skeletons -->
+          <div class="budget-card">
+            <div class="budget-card-header"><div class="skeleton skeleton-text" style="width:50%"></div></div>
+            <div class="budget-amounts"><div class="skeleton skeleton-text" style="width:100%"></div></div>
+            <div class="progress-bar"><div class="skeleton" style="width:100%;height:100%"></div></div>
+          </div>
+          <div class="budget-card">
+            <div class="budget-card-header"><div class="skeleton skeleton-text" style="width:40%"></div></div>
+            <div class="budget-amounts"><div class="skeleton skeleton-text" style="width:90%"></div></div>
+            <div class="progress-bar"><div class="skeleton" style="width:100%;height:100%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Cmd+K Modal -->
+<div class="modal-overlay" id="cmd-modal">
+  <div class="cmd-modal">
+    <div class="cmd-input-container">
+      <i data-lucide="search"></i>
+      <input type="text" class="cmd-input" id="cmd-input" placeholder="Search transactions, budgets, or type a command...">
+      <span class="search-shortcut" style="font-size:0.6rem">ESC to close</span>
+    </div>
+    <div class="cmd-results" id="cmd-results">
+      <div class="cmd-group-label">Quick Actions</div>
+      <button class="cmd-item selected" onclick="openModal(); document.getElementById('cmd-modal').classList.remove('open')"><i data-lucide="plus"></i> Set New Budget</button>
+      <button class="cmd-item" onclick="openScanner()"><i data-lucide="scan-line"></i> Scan Receipt</button>
+      <button class="cmd-item" onclick="window.location.href='categories.html'"><i data-lucide="tags"></i> Manage Categories</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scanner Modal -->
+<div class="modal-overlay" id="scanner-modal">
+  <div class="modal" style="max-width: 400px;text-align:center">
+    <div class="modal-header" style="justify-content:center;margin-bottom:16px">
+      <h2 style="font-size:1.25rem;font-weight:600">Scan Receipt</h2>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px">Our AI will automatically extract the amount, date, and category from your receipt.</p>
+    
+    <div class="scanner-area" onclick="alert('Demo Mode: In a real app this would open the file picker or camera.')">
+      <i data-lucide="camera"></i>
+      <div style="font-weight:600;color:var(--text-main);margin-bottom:4px">Click to upload</div>
+      <div style="font-size:0.8rem;color:var(--text-muted)">or drag and drop PNG, JPG</div>
+    </div>
+    
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-secondary" onclick="document.getElementById('scanner-modal').classList.remove('open')" style="width:100%">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Set Budget Modal ===== -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Set Budget Limit</h2>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+    </div>
+
+    <p style="color:var(--text-muted);font-size:0.95rem;margin-bottom:24px">
+      Set a monthly spending limit for a category. We'll notify you if you exceed it.
+    </p>
+
+    <input type="hidden" id="b-id">
+
+    <div class="form-group">
+      <label for="b-category">Category *</label>
+      <select id="b-category"><option value="">-- Select Category --</option></select>
+    </div>
+    <div class="form-group">
+      <label for="b-amount">Budget Limit (₹) *</label>
+      <input type="number" id="b-amount" placeholder="e.g. 5000" step="1" min="1">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="b-month">Month</label>
+        <select id="b-month">
+          <option value="1">January</option><option value="2">February</option>
+          <option value="3">March</option><option value="4">April</option>
+          <option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option>
+          <option value="9">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="b-year">Year</label>
+        <select id="b-year"></select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveBudget()">Save Budget</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// Theme Toggle
+function toggleTheme() {
+  const root = document.documentElement;
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  root.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  document.getElementById('theme-icon').setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+  lucide.createIcons();
+}
+document.addEventListener("DOMContentLoaded", () => {
+  if (document.documentElement.getAttribute('data-theme') === 'dark') {
+    document.getElementById('theme-icon').setAttribute('data-lucide', 'sun');
+  }
+  lucide.createIcons();
+});
+
+// Cmd+K Logic
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    openCmdK();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('cmd-modal').classList.remove('open');
+    document.getElementById('scanner-modal').classList.remove('open');
+  }
+});
+function openCmdK() {
+  const modal = document.getElementById('cmd-modal');
+  modal.classList.add('open');
+  setTimeout(() => document.getElementById('cmd-input').focus(), 100);
+}
+document.getElementById('cmd-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('cmd-modal')) e.target.classList.remove('open');
+});
+function openScanner() {
+  document.getElementById('cmd-modal').classList.remove('open');
+  document.getElementById('scanner-modal').classList.add('open');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.header-dropdown-wrapper') && !e.target.closest('.profile-card')) {
+    document.getElementById('header-dropdown').classList.remove('show');
+  }
+  if (!e.target.closest('.action-menu-wrapper')) {
+    document.querySelectorAll('.action-dropdown').forEach(d => d.classList.remove('show'));
+  }
+});
+
+function toggleActionMenu(id, event) {
+  document.querySelectorAll('.action-dropdown').forEach(d => {
+    if (d.id !== `action-dropdown-${id}`) d.classList.remove('show');
+  });
+  document.getElementById(`action-dropdown-${id}`).classList.toggle('show');
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let categories = [];
+
+async function init() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) { window.location.href = '/index.html'; return; }
+  const user = await res.json();
+  document.getElementById('sidebar-username').textContent = user.username;
+  document.getElementById('drop-username').textContent = user.username;
+  document.getElementById('sidebar-avatar').textContent = user.username.charAt(0).toUpperCase();
+  document.getElementById('nav-avatar').textContent = user.username.charAt(0).toUpperCase();
+
+  const now = new Date();
+  ['year-sel','b-year'].forEach(id => {
+    const sel = document.getElementById(id);
+    for (let y = now.getFullYear(); y >= now.getFullYear()-2; y--) {
+      sel.innerHTML += `<option value="${y}">${y}</option>`;
+    }
+  });
+  document.getElementById('month-sel').value = now.getMonth() + 1;
+  document.getElementById('b-month')  .value = now.getMonth() + 1;
+
+  await loadCategories();
+  setTimeout(loadBudgets, 200);
+}
+
+async function loadCategories() {
+  try {
+    const res  = await fetch('/api/categories');
+    categories = await res.json();
+    const sel  = document.getElementById('b-category');
+    sel.innerHTML = '<option value="">-- Select Category --</option>' +
+      categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  } catch(e) {}
+}
+
+function getDemoBudgets() {
+  return [
+    { id: 1, categoryName: "Food & Dining", limitAmount: 15000, spentAmount: 12400, percentageUsed: 82.6 },
+    { id: 2, categoryName: "Shopping", limitAmount: 10000, spentAmount: 9200, percentageUsed: 92.0 },
+    { id: 3, categoryName: "Entertainment", limitAmount: 5000, spentAmount: 1200, percentageUsed: 24.0 },
+    { id: 4, categoryName: "Travel", limitAmount: 4000, spentAmount: 4500, percentageUsed: 112.5, exceeded: true }
+  ];
+}
+
+async function loadBudgets() {
+  const month = document.getElementById('month-sel').value;
+  const year  = document.getElementById('year-sel').value;
+  document.getElementById('month-label').textContent = `${MONTHS[month-1]} ${year} limits`;
+
+  let list = [];
+  try {
+    const res  = await fetch(`/api/budgets?month=${month}&year=${year}`);
+    list = await res.json();
+  } catch(e) {}
+
+  if (!list.length) list = getDemoBudgets(); // Fallback to realistic demo data
+
+  const totalBudget    = list.reduce((s, b) => s + b.limitAmount, 0);
+  const totalSpent     = list.reduce((s, b) => s + b.spentAmount, 0);
+  document.getElementById('total-budget')   .textContent = '₹' + totalBudget.toLocaleString('en-IN', {minimumFractionDigits: 2});
+  document.getElementById('total-spent')    .textContent = '₹' + totalSpent.toLocaleString('en-IN', {minimumFractionDigits: 2});
+  document.getElementById('total-remaining').textContent = '₹' + Math.max(0, totalBudget - totalSpent).toLocaleString('en-IN', {minimumFractionDigits: 2});
+  document.getElementById('total-count')    .textContent = list.length;
+
+  const exceeded = list.filter(b => b.exceeded || b.spentAmount > b.limitAmount);
+  document.getElementById('alerts-container').innerHTML = exceeded.map(b =>
+    `<div class="alert alert-danger" style="background:var(--danger-light);color:var(--danger)">
+       <div class="alert-icon"><i data-lucide="alert-circle"></i></div>
+       <div><strong>${b.categoryName}</strong> budget exceeded! 
+         Spent ₹${b.spentAmount.toLocaleString('en-IN')} of ₹${b.limitAmount.toLocaleString('en-IN')} 
+         (${(b.percentageUsed || (b.spentAmount/b.limitAmount*100)).toFixed(0)}% used)</div>
+     </div>`
+  ).join('');
+  lucide.createIcons();
+
+  document.getElementById('budget-grid').innerHTML = list.map(b => {
+    const pct      = Math.min(100, b.percentageUsed || (b.limitAmount > 0 ? (b.spentAmount/b.limitAmount*100) : 0));
+    const fillClass= pct >= 100 ? 'danger' : pct >= 80 ? 'warn' : '';
+    const isExceeded = b.exceeded || b.spentAmount > b.limitAmount;
+    
+    const spentStr = b.spentAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const limitStr = b.limitAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const leftStr  = Math.max(0, b.limitAmount - b.spentAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    return `
+    <div class="budget-card ${isExceeded ? 'exceeded' : ''}" style="${isExceeded ? 'border-color:var(--danger)' : ''}">
+      <div class="budget-card-header">
+        <div class="budget-cat-name" style="font-weight:600;color:var(--text-main)">
+          <span style="font-size: 20px;">${getCatIcon(b.categoryId, b.categoryName)}</span>
+          ${b.categoryName || 'Category'}
+        </div>
+        
+        <div class="action-menu-wrapper" style="position:relative;top:-4px;right:-4px">
+          <button class="action-btn" onclick="toggleActionMenu(${b.id}, event)"><i data-lucide="more-horizontal"></i></button>
+          <div class="action-dropdown" id="action-dropdown-${b.id}">
+            <button class="action-item danger" onclick="deleteBudget(${b.id})"><i data-lucide="trash-2" style="width:16px;height:16px"></i> Remove Limit</button>
+          </div>
+        </div>
+      </div>
+      <div class="budget-amounts">
+        <span>Spent <strong>₹${spentStr}</strong></span>
+        <span>of ₹${limitStr}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
+      </div>
+      <div class="budget-footer">
+        <span class="budget-pct">${pct.toFixed(0)}% used</span>
+        <span style="font-size:0.85rem;font-weight:500;color:${isExceeded ? 'var(--danger)' : 'var(--success)'}; display:flex; align-items:center; gap:4px">
+          <i data-lucide="${isExceeded?'alert-circle':'check-circle'}" style="width:14px;height:14px"></i>
+          ${isExceeded ? 'Exceeds limit' : '₹' + leftStr + ' left'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function getCatIcon(id, name) {
+  if (categories && categories.length > 0) {
+    const cat = categories.find(c => c.id == id);
+    if (cat && cat.icon) return cat.icon;
+  }
+  // Fallback demo icons mapping
+  name = (name || '').toLowerCase();
+  if (name.includes('food')) return '🍔';
+  if (name.includes('shop')) return '🛒';
+  if (name.includes('entertain')) return '🎬';
+  if (name.includes('travel')) return '🚕';
+  return '💰';
+}
+
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('b-id').value = '';
+  document.getElementById('b-amount').value = '';
+  document.getElementById('b-month').value = document.getElementById('month-sel').value;
+  document.getElementById('b-year').value  = document.getElementById('year-sel').value;
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function saveBudget() {
+  const catId  = document.getElementById('b-category').value;
+  const amount = parseFloat(document.getElementById('b-amount').value);
+  const month  = parseInt(document.getElementById('b-month').value);
+  const year   = parseInt(document.getElementById('b-year').value);
+
+  if (!catId)  { showToast('Please select a category', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+  const body = { categoryId: parseInt(catId), limitAmount: amount, month, year };
+  const res  = await fetch('/api/budgets', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+
+  if (res.ok) {
+    closeModal(); loadBudgets(); showToast('Budget saved!', 'success');
+  } else {
+    const err = await res.json();
+    showToast(err.error || 'Error saving budget', 'error');
+  }
+}
+
+async function deleteBudget(id) {
+  if (!confirm('Remove this budget limit?')) return;
+  const res = await fetch(`/api/budgets/${id}`, { method: 'DELETE' });
+  if (res.ok) { loadBudgets(); showToast('Budget removed', 'info'); }
+}
+
+function showToast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':type==='error'?'alert-circle':'info'}"></i> ${msg}`;
+  c.appendChild(t);
+  lucide.createIcons();
+  setTimeout(() => t.remove(), 3000);
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/index.html';
+}
+
+init();
+</script>
+</body>
+</html>

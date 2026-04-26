@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker — Login</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <!-- Logo / App Name -->
+    <div class="auth-logo">
+      <span class="logo-icon">💰</span>
+      <h1>Expense Tracker</h1>
+      <p>Manage your money, one transaction at a time</p>
+    </div>
+
+    <!-- Login / Signup Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"  onclick="showTab('login')">Login</button>
+      <button class="auth-tab"        id="tab-signup" onclick="showTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- ===== Login Form ===== -->
+    <div class="auth-form active" id="form-login">
+      <div class="auth-error" id="login-error"></div>
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px"
+              id="btn-login" onclick="doLogin()">Login →</button>
+    </div>
+
+    <!-- ===== Signup Form ===== -->
+    <div class="auth-form" id="form-signup">
+      <div class="auth-error" id="signup-error"></div>
+      <div class="form-group">
+        <label for="signup-username">Username</label>
+        <input type="text" id="signup-username" placeholder="Choose a username">
+      </div>
+      <div class="form-group">
+        <label for="signup-email">Email (optional)</label>
+        <input type="email" id="signup-email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" placeholder="Min 4 characters">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px"
+              id="btn-signup" onclick="doSignup()">Create Account →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // If already logged in, go to dashboard
+  fetch('/api/auth/me').then(r => {
+    if (r.ok) window.location.href = '/dashboard.html';
+  });
+
+  function showTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    document.getElementById('tab-'  + tab).classList.add('active');
+    document.getElementById('form-' + tab).classList.add('active');
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function clearError(id) {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    el.classList.remove('visible');
+  }
+
+  async function doLogin() {
+    clearError('login-error');
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) { showError('login-error', 'Please fill in all fields'); return; }
+
+    const btn = document.getElementById('btn-login');
+    btn.textContent = 'Logging in...'; btn.disabled = true;
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      window.location.href = '/dashboard.html';
+    } else {
+      showError('login-error', data.error || 'Login failed');
+      btn.textContent = 'Login →'; btn.disabled = false;
+    }
+  }
+
+  async function doSignup() {
+    clearError('signup-error');
+    const username = document.getElementById('signup-username').value.trim();
+    const email    = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!username || !password) { showError('signup-error', 'Username and password are required'); return; }
+
+    const btn = document.getElementById('btn-signup');
+    btn.textContent = 'Creating...'; btn.disabled = true;
+
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, email })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showTab('login');
+      document.getElementById('login-username').value = username;
+      clearError('signup-error');
+      alert('Account created! Please log in.');
+    } else {
+      showError('signup-error', data.error || 'Signup failed');
+    }
+    btn.textContent = 'Create Account →'; btn.disabled = false;
+  }
+
+  // Allow Enter key on forms
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('form-login').classList.contains('active')) doLogin();
+      else doSignup();
+    }
+  });
+</script>
+</body>
+</html>
